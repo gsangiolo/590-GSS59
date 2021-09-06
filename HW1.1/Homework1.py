@@ -86,6 +86,10 @@ def min_squares_f(p, point_x, point_y, f_name):
 
 # In[143]:
 
+# Note: Instead of normalizing, I'm feeding the params into the minimization function. This is a little more intuitive for me to think about, and removes the step of un-normalizing the results
+
+
+# ===== LINEAR REGRESSION ======
 
 lin_min = minimize(min_squares_f, [1, 1], args=(data[data['x'] < 18]['x'], data[data['x'] < 18]['y'], 'lin_f'), method='Nelder-Mead', tol=1e-5)
 #lin_min
@@ -101,16 +105,29 @@ params = lin_min.x
 
 # In[145]:
 
+# Plot the results of the Linear Regression!
 
 plt.scatter(data['x'], data['y'])
 x = np.linspace(min(data[data['x'] < 18]['x']),max(data[data['x'] < 18]['x']),100)
 y = params[0]*x+params[1]
 plt.plot(x, y, '-r')
+plt.xlabel('Age')
+plt.ylabel('Weight')
 plt.savefig('linear_regression.png')
+
+# Parity Plot -- predicted vs actual weights
+plt.scatter(data[data['x'] <18]['y'], [params[0]*i+params[1] for i in data[data['x'] < 18]['x']])
+plt.xlabel('Predicted Weight')
+plt.ylabel('Actual Weight')
+plt.savefig('parity_lin_regression.png')
 print("Linear figure saved to linear_regression.png")
+
+
+# ===== ===== =====
 
 # In[146]:
 
+# ===== LOGISTIC REGRESSION =====
 
 log_min = minimize(min_squares_f, [1, 1, 1, 1], args=(data['x'], data['y'], 'log_f'), method='Nelder-Mead', tol=1e-5)
 #log_min
@@ -120,21 +137,33 @@ print(log_min)
 
 # In[147]:
 
+# Plot the results of the logistic regression!
 
 params = log_min.x
 plt.scatter(data['x'], data['y'])
 x = np.linspace(min(data['x']),max(data['x']),100)
 y = [(params[0] / (1 + math.exp(-(i - params[2])/params[1]))) + params[3] for i in x]
 plt.plot(x, y, '-r')
+plt.xlabel('Age')
+plt.ylabel('Weight')
 plt.savefig('logistic_regression.png')
-print("Logistic plot saved to logisitc_regression.png")
+
+# Parity plot -- predicted vs actual weights
+plt.scatter(data['y'], [log_f(i, params) for i in data['x']])
+plt.xlabel('Predicted Weight')
+plt.ylabel('Actual Weight')
+plt.savefig('parity_log_regression.png')
+print("Logistic plot saved to logistic_regression.png")
 
 
 # In[148]:
 
 
-# For this, adjusting the starting parameters helps a lot when generating the sigmoid
+# ===== BINARY CLASSIFICATION =====
+
+# For this, adjusting the starting parameters helps a lot when generating an accurate sigmoid
 # For simplicity, the classifications are done at plot-time
+# Threshold is set to 0.5 -- halfway between 0 and 1 (the classifications)
 threshold = 0.5
 
 log_min = minimize(min_squares_f, [1, 1, np.mean(data['y']), min(data['is_adult'])], args=(data['y'], data['is_adult'], 'log_f'), method='Nelder-Mead', tol=1e-5)
@@ -144,13 +173,31 @@ print(log_min)
 
 # In[149]:
 
+# Plot the results of the binary classification!
 
 params = log_min.x
 plt.scatter(data['y'], data['is_adult'])
 x = np.linspace(min(data['y']),max(data['y']),100)
 y = [0 if log_f(i, params) < threshold else 1 for i in x]
 plt.plot(x, y, '-r')
+plt.xlabel('Age')
+plt.ylabel('Weight')
 plt.savefig('logistic_binary_regression.png')
+
+# Parity plot doesn't make sense, so here is a confusion matrix of the results
+# Based on result from https://stackoverflow.com/questions/2148543/how-to-write-a-confusion-matrix-in-python
+pred = pd.Series([0 if log_f(i, params) < threshold else 1 for i in x], name='Predicted')
+df_confusion = pd.crosstab(data['is_adult'], pred, rownames=['Actual'], colnames=["Predicted"], margins=True)
+
+plt.matshow(df_confusion)
+plt.colorbar()
+tick_marks = np.arange(len(df_confusion.columns))
+plt.xticks(tick_marks, df_confusion.columns, rotation=45)
+plt.yticks(tick_marks, df_confusion.index)
+plt.savefig('binary_confusion.png')
+
 print("Binary Logistic plot saved to logistic_binary_regression.png")
+
+
 
 print("Completed all three example regressions!")
