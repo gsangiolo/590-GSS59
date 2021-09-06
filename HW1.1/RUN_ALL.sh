@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ScriptLoc=${PWD}
-cd LectureCodes/WEEK1
+cd LectureCodes
 for i in *.py; do 
 	echo $i; python $i; 
 done
