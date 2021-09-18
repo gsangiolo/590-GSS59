@@ -198,5 +198,7 @@ for i in range(0,len(x)):
 	plt.plot(x[i],y[i],z[i],'ro')
 	plt.pause(dt)
 
+print("I have read and understand this code")
+
 plt.show()
 

@@ -77,4 +77,6 @@ while(t<=tmax):
 	xi=xip1 
 
 
+print("I have run and understand this code!")
+
 plt.show(); #exit()

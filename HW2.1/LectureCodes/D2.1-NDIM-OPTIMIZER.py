@@ -59,5 +59,9 @@ while(t<=tmax):
 	#UPDATE FOR NEXT ITERATION OF LOOP
 	xi=xip1
 
+
+print("I have read and understand this code")
+
+
 exit()
 
