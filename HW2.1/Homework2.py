@@ -29,10 +29,12 @@ jsondata
 # In[44]:
 
 
-data = pd.DataFrame([jsondata['x'], jsondata['y'], jsondata['is_adult']]).T
-data.columns = ['x', 'y', 'is_adult']
-data.head()
+rawdata = pd.DataFrame([jsondata['x'], jsondata['y'], jsondata['is_adult']]).T
+rawdata.columns = ['x', 'y', 'is_adult']
+rawdata.head()
 
+data = rawdata.sample(n=int(len(rawdata['x'])*0.7))
+test = rawdata.sample(n=int(len(rawdata['x'])*0.3))
 
 # In[45]:
 
@@ -85,6 +87,16 @@ def min_squares_f(p, point_x, point_y, f_name):
     return sum([d**2 for d in distance])
 
 
+# Funtion to run a minimization using Gradient Descent
+# Runs Full Batch, Mini Batch, or Stochastic versions of the algorithm, based on the specified number of batches
+# Has the option to run with or without momentum
+# Parameters:
+#  func -- the minimization function. Recommend min_squares_f, as it is already written in this file. Should be a FUNCTION
+#  init_guess -- initial guess/starting point for the parameters. Useful for mimicking the scipy minimize function. Should be an ARRAY of FLOATS, of length equal to the number of params being determined
+#  args -- any additional arguments to be passed to the function (ARRAY)
+#  method -- STRING specification of which method to use. Currently supports 'GD' (Gradient Descent) and 'GD momentum' (GD with momentum)
+#  tol -- carried over from Scipy; a FLOAT that represents how much wiggle is allowed before the algorithm calls it quits
+#  n_batches -- an INT that specifies how many batches to use. n_batches=1: FULL BATCH. n_batches=len(data): STOCHASTIC. Anything in between: MINI BATCH. Default is 1 (FULL)
 def minimize(func, init_guess, args, method, tol, n_batches=1):
     points_x, points_y, func_name = args
     points = list(zip(points_x, points_y))
@@ -125,7 +137,7 @@ def minimize(func, init_guess, args, method, tol, n_batches=1):
         next_coord = [current_coord[i] + learning_rate * gradient[i] + momentum[i] for i in range(n_coords)]
         next_sse = func(next_coord, batch_x, batch_y, func_name)
         if 'momentum' in method:
-            momentum = [momentum[i] + gradient[i] for i in range(n_coords)]
+            momentum = [((momentum[i] * 0.5) + gradient[i]) if (momentum[i] >= 0) else ((-1 * (abs(momentum[i]) * 0.5)) + gradient[i]) for i in range(n_coords)]
         #print(steps)
         #print(current_coord)
         #print(current_sse)
@@ -164,19 +176,23 @@ params = lin_min
 # Plot the results of the Linear Regression!
 
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data[data['x'] < 18]['x']),max(data[data['x'] < 18]['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata[rawdata['x'] < 18]['x']),max(rawdata[rawdata['x'] < 18]['x']),100)
 y = params[0]*x+params[1]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Linear Regression Full Batch Results')
 plt.savefig('linear_regression.png')
 
 plt.clf()
 
 # Parity Plot -- predicted vs actual weights
 plt.scatter(data[data['x'] <18]['y'], [params[0]*i+params[1] for i in data[data['x'] < 18]['x']])
+plt.scatter(test[test['x'] <18]['y'], [params[0]*i+params[1] for i in test[test['x'] < 18]['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Linear Regression Full Batch Parity')
 plt.savefig('parity_lin_regression.png')
 print("Linear figure saved to linear_regression.png")
 plt.clf()
@@ -199,19 +215,23 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data['x']),max(data['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata['x']),max(rawdata['x']),100)
 y = [(params[0] / (1 + math.exp(-(i - params[2])/params[1]))) + params[3] for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Logistic Regression Full Batch Results')
 plt.savefig('logistic_regression.png')
 
 plt.clf()
 
 # Parity plot -- predicted vs actual weights
 plt.scatter(data['y'], [log_f(i, params) for i in data['x']])
+plt.scatter(test['y'], [log_f(i, params) for i in test['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Logistic Regression Full Batch Parity')
 plt.savefig('parity_log_regression.png')
 print("Logistic plot saved to logistic_regression.png")
 plt.clf()
@@ -237,11 +257,13 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['y'], data['is_adult'])
-x = np.linspace(min(data['y']),max(data['y']),100)
+plt.scatter(test['y'], test['is_adult'])
+x = np.linspace(min(rawdata['y']),max(rawdata['y']),100)
 y = [0 if log_f(i, params) < threshold else 1 for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Binary Logistic Regression Full Batch Results')
 plt.savefig('logistic_binary_regression.png')
 
 plt.clf()
@@ -256,6 +278,7 @@ plt.colorbar()
 tick_marks = np.arange(len(df_confusion.columns))
 #plt.xticks(tick_marks, df_confusion.columns, rotation=45)
 #plt.yticks(tick_marks, df_confusion.index)
+plt.title('Binary Logistic Regression Full Batch Confusion Matrix')
 plt.savefig('binary_confusion.png')
 
 plt.clf()
@@ -287,19 +310,23 @@ params = lin_min
 # Plot the results of the Linear Regression!
 
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data[data['x'] < 18]['x']),max(data[data['x'] < 18]['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata[rawdata['x'] < 18]['x']),max(rawdata[rawdata['x'] < 18]['x']),100)
 y = params[0]*x+params[1]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Linear Regression Mini Batch Results')
 plt.savefig('linear_regression_mini_batch.png')
 
 plt.clf()
 
 # Parity Plot -- predicted vs actual weights
 plt.scatter(data[data['x'] <18]['y'], [params[0]*i+params[1] for i in data[data['x'] < 18]['x']])
+plt.scatter(test[test['x'] <18]['y'], [params[0]*i+params[1] for i in test[test['x'] < 18]['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Linear Regression Mini Batch Parity')
 plt.savefig('parity_lin_regression_mini_batch.png')
 print("Linear figure (mini batch) saved to linear_regression_mini_batch.png")
 
@@ -323,19 +350,23 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data['x']),max(data['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata['x']),max(rawdata['x']),100)
 y = [(params[0] / (1 + math.exp(-(i - params[2])/params[1]))) + params[3] for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Logistic Regression Mini Batch Results')
 plt.savefig('logistic_regression_mini_batch.png')
 
 plt.clf()
 
 # Parity plot -- predicted vs actual weights
 plt.scatter(data['y'], [log_f(i, params) for i in data['x']])
+plt.scatter(test['y'], [log_f(i, params) for i in test['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Logistic Regression Mini Batch Parity')
 plt.savefig('parity_log_regression_mini_batch.png')
 print("Logistic plot (mini batch) saved to logistic_regression_mini_batch.png")
 
@@ -363,11 +394,13 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['y'], data['is_adult'])
-x = np.linspace(min(data['y']),max(data['y']),100)
+plt.scatter(test['y'], test['is_adult'])
+x = np.linspace(min(rawdata['y']),max(rawdata['y']),100)
 y = [0 if log_f(i, params) < threshold else 1 for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Binary Logistic Regression Mini Batch Results')
 plt.savefig('logistic_binary_regression_mini_batch.png')
 
 plt.clf()
@@ -382,6 +415,7 @@ plt.colorbar()
 tick_marks = np.arange(len(df_confusion.columns))
 #plt.xticks(tick_marks, df_confusion.columns, rotation=45)
 #plt.yticks(tick_marks, df_confusion.index)
+plt.title('Binary Logistic Regression Mini Batch Confusion Matrix')
 plt.savefig('binary_confusion_mini_batch.png')
 
 print("Binary Logistic plot (mini batch) saved to logistic_binary_regression_mini_batch.png")
@@ -412,19 +446,23 @@ params = lin_min
 # Plot the results of the Linear Regression!
 
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data[data['x'] < 18]['x']),max(data[data['x'] < 18]['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata[rawdata['x'] < 18]['x']),max(rawdata[rawdata['x'] < 18]['x']),100)
 y = params[0]*x+params[1]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Linear Regression Stochastic Results')
 plt.savefig('linear_regression_stochastic.png')
 
 plt.clf()
 
 # Parity Plot -- predicted vs actual weights
 plt.scatter(data[data['x'] <18]['y'], [params[0]*i+params[1] for i in data[data['x'] < 18]['x']])
+plt.scatter(test[test['x'] <18]['y'], [params[0]*i+params[1] for i in test[test['x'] < 18]['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Linear Regression Stochastic Parity')
 plt.savefig('parity_lin_regression_stochastic.png')
 print("Linear figure (stochastic) saved to linear_regression_stochastic.png")
 
@@ -448,19 +486,23 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data['x']),max(data['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata['x']),max(rawdata['x']),100)
 y = [(params[0] / (1 + math.exp(-(i - params[2])/params[1]))) + params[3] for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Logistic Regression Stochastic Results')
 plt.savefig('logistic_regression_stochastic.png')
 
 plt.clf()
 
 # Parity plot -- predicted vs actual weights
 plt.scatter(data['y'], [log_f(i, params) for i in data['x']])
+plt.scatter(test['y'], [log_f(i, params) for i in test['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Logistic Regression Stochastic Parity')
 plt.savefig('parity_log_regression_stochastic.png')
 print("Logistic plot (stochastic) saved to logistic_regression_stochastic.png")
 
@@ -488,11 +530,13 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['y'], data['is_adult'])
-x = np.linspace(min(data['y']),max(data['y']),100)
+plt.scatter(test['y'], test['is_adult'])
+x = np.linspace(min(rawdata['y']),max(rawdata['y']),100)
 y = [0 if log_f(i, params) < threshold else 1 for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Binary Logistic Regression Stochastic Results')
 plt.savefig('logistic_binary_regression_stochastic.png')
 
 plt.clf()
@@ -507,6 +551,7 @@ plt.colorbar()
 tick_marks = np.arange(len(df_confusion.columns))
 #plt.xticks(tick_marks, df_confusion.columns, rotation=45)
 #plt.yticks(tick_marks, df_confusion.index)
+plt.title('Binary Logistic Regression Stochastic Confusion Matrix')
 plt.savefig('binary_confusion_stochastic.png')
 
 plt.clf()
@@ -537,19 +582,23 @@ params = lin_min
 # Plot the results of the Linear Regression!
 
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data[data['x'] < 18]['x']),max(data[data['x'] < 18]['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata[rawdata['x'] < 18]['x']),max(rawdata[rawdata['x'] < 18]['x']),100)
 y = params[0]*x+params[1]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Linear Regression Full Batch Momentum Results')
 plt.savefig('linear_regression_momentum.png')
 
 plt.clf()
 
 # Parity Plot -- predicted vs actual weights
 plt.scatter(data[data['x'] <18]['y'], [params[0]*i+params[1] for i in data[data['x'] < 18]['x']])
+plt.scatter(test[test['x'] <18]['y'], [params[0]*i+params[1] for i in test[test['x'] < 18]['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Linear Regression Full Batch Momentum Parity')
 plt.savefig('parity_lin_regression_momentum.png')
 print("Linear figure saved to linear_regression_momentum.png")
 
@@ -574,19 +623,23 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['x'], data['y'])
-x = np.linspace(min(data['x']),max(data['x']),100)
+plt.scatter(test['x'], test['y'])
+x = np.linspace(min(rawdata['x']),max(rawdata['x']),100)
 y = [(params[0] / (1 + math.exp(-(i - params[2])/params[1]))) + params[3] for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Logistic Regression Full Batch Momentum Results')
 plt.savefig('logistic_regression_momentum.png')
 
 plt.clf()
 
 # Parity plot -- predicted vs actual weights
 plt.scatter(data['y'], [log_f(i, params) for i in data['x']])
+plt.scatter(test['y'], [log_f(i, params) for i in test['x']])
 plt.xlabel('Predicted Weight')
 plt.ylabel('Actual Weight')
+plt.title('Logistic Regression Full Batch Momentum Parity')
 plt.savefig('parity_log_regression_momentum.png')
 print("Logistic plot saved to logistic_regression_momentum.png")
 
@@ -613,11 +666,13 @@ print(log_min)
 
 params = log_min
 plt.scatter(data['y'], data['is_adult'])
-x = np.linspace(min(data['y']),max(data['y']),100)
+plt.scatter(test['y'], test['is_adult'])
+x = np.linspace(min(rawdata['y']),max(rawdata['y']),100)
 y = [0 if log_f(i, params) < threshold else 1 for i in x]
 plt.plot(x, y, '-r')
 plt.xlabel('Age')
 plt.ylabel('Weight')
+plt.title('Binary Logistic Regression Full Batch Momentum Results')
 plt.savefig('logistic_binary_regression_momentum.png')
 
 plt.clf()
@@ -632,6 +687,7 @@ plt.colorbar()
 tick_marks = np.arange(len(df_confusion.columns))
 #plt.xticks(tick_marks, df_confusion.columns, rotation=45)
 #plt.yticks(tick_marks, df_confusion.index)
+plt.title('Binary Logistic Regression Full Batch Momentum Confusion Matrix')
 plt.savefig('binary_confusion_momentum.png')
 
 plt.clf()
