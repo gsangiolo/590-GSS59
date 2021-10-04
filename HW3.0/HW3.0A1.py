@@ -1,11 +1,13 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import accuracy_score
 from tensorflow.keras import layers, models, Sequential, optimizers, losses, metrics, callbacks
 from tensorflow import matmul
 import keras_tuner as kt
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Number of classes (set to 3 now -- low, med, high?)
 n_bins = 3
@@ -21,36 +23,49 @@ target_class = label_encoder.fit_transform(pd.cut(target_raw, n_bins, retbins=Tr
 scaler = StandardScaler()
 data = scaler.fit_transform(data)
 
+kfold = KFold(n_splits=10, shuffle=True)
+
+fold = 1
+
+fold_loss = []
+fold_accuracy = []
+
 x_train, x_test, y_train, y_test = train_test_split(data, target_class, test_size=0.2)
 
-model = Sequential([
-    layers.Dense(32, activation='relu'),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(128, activation='relu'),
-    layers.Dense(256, activation='relu'),
-    layers.Dense(512, activation='relu'),
-    layers.Dense(256, activation='relu'),
-    layers.Dense(128, activation='relu'),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(32, activation='relu'),
-    layers.Dense(n_bins, activation='softmax')
-    ])
+for train, test in kfold.split(data, target_class):
 
-model.compile(optimizer='rmsprop',
-        loss='mean_squared_error',
-        metrics=['accuracy'])
+    model = Sequential([
+        layers.Dense(32, activation='relu'),
+        layers.Dense(64, activation='relu'),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(256, activation='relu'),
+        layers.Dense(512, activation='relu'),
+        layers.Dense(256, activation='relu'),
+        layers.Dense(128, activation='relu'),
+        layers.Dense(64, activation='relu'),
+        layers.Dense(32, activation='relu'),
+        layers.Dense(n_bins, activation='softmax')
+        ])
+    
+    model.compile(optimizer='rmsprop',
+            loss='mean_squared_error',
+            metrics=['accuracy'])
+    
+    history = model.fit(
+            data[train],
+            target_class[train],
+            epochs=100,
+            batch_size=128
+            )
+    
+    results = model.evaluate(data[test], target_class[test], verbose=0)
+    print('Accuracy is: ' + str(results[1]*100) + ' for fold #' + str(fold))
+    fold_accuracy.append(results[1] * 100)
+    fold_loss.append(results[0])
+    fold += 1
 
-history = model.fit(
-        x_train,
-        y_train,
-        epochs=100,
-        batch_size=128
-        )
-
-y_pred_raw = model.predict(x_test)
-y_pred = list([np.argmax(y_pred_raw[i]) for i in range(len(y_pred_raw))])
-a = accuracy_score(y_pred, y_test)
-print('Accuracy is: ', a*100)
+sns.scatterplot(range(1,11), fold_loss)
+sns.scatterplot(range(1,11), fold_accuracy)
 
 
 # From Tensorflow Docs:
