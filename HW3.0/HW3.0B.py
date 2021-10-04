@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import json
+from sklearn.preprocessing import LabelEncoder
 
 #------------------------
 #CODE PARAMETERS
@@ -21,10 +22,14 @@ tol=10**-10                     #EXIT AFTER CHANGE IN F IS LESS THAN THIS
 alpha=0.5                       #EXPONENTIAL DECAY FACTOR FOR MOMENTUM ALGO
 algo='MOM'
 
-model_type="linear";  LR=0.01  #LEARNING RATE 
-model_type='ANN'
-activation='TANH'
-layers=[1,5,5,5,1]     # Initial layers to be overwritten
+LR=0.01  #LEARNING RATE 
+model_type='ANN' # Alternatives: linear, logistic
+activation='TANH' # Alternative: SIGMOID
+
+num_classes=3 # Number of classes for classification. Set to 1 for continuous regression, set to 2+ for binary/multiclass problems
+y_distribution='CONTINUOUS' # Alternative: CLASSES -- determines whether or not this program needs to create classes for you. Example: If y is a continuous variable, but num_classes > 1, this program will divide y into num_classes classes for you. If y is a classes variable and num_classes > 1, this program doesn't need to do it for you. Please pay attention when setting these values!
+
+layers=[1,5,5,5,num_classes]     # Initial layers to be overwritten
 
 GAMMA_L1=0.0
 GAMMA_L2=0.01
@@ -72,6 +77,14 @@ print(X_KEYS); print(Y_KEYS); # exit()
 x=df[X_KEYS].to_numpy()
 y=df[Y_KEYS].to_numpy()
 
+
+# If doing binary/multiclass classification, convert continuous Y variable to classes
+if (num_classes > 1) and (y_distribution.lower() == 'continuous'):
+    target_raw = y.T[0]
+    label_encoder = LabelEncoder()
+    y = label_encoder.fit_transform(pd.cut(target_raw, num_classes, retbins=True)[0]).T
+
+
 #REMOVE NAN IF PRESENT
 xtmp=[]; ytmp=[];
 for i in range(0,len(x)):
@@ -94,7 +107,9 @@ YMEAN=np.mean(Y,axis=0); YSTD=np.std(Y,axis=0)
 
 #TAKE MEAN AND STD DOWN COLUMNS (I.E DOWN SAMPLE DIMENSION)
 if(I_NORMALIZE):
-        X=(X-XMEAN)/XSTD;  Y=(Y-YMEAN)/YSTD  
+        X=(X-XMEAN)/XSTD
+        if num_classes == 1:
+            Y=(Y-YMEAN)/YSTD  # No need to normalize for classification
         I_UNNORMALIZE=True
 else:
         I_UNNORMALIZE=False
@@ -159,7 +174,12 @@ def model(x,p):
                                 out = np.matmul(out, submatrices[i])
                         else:
                                 out += submatrices[i]
-                return S(out)
+                if num_classes > 1: # if non-continuous, take the max for each row
+                    out = np.argmax(out, axis=1).T
+                if activation.lower() == 'sigmoid':
+                    return S(out)
+                else:
+                    return np.tanh(out)
 
 
 #FUNCTION TO MAKE VARIOUS PREDICTIONS FOR GIVEN PARAMETERIZATION
