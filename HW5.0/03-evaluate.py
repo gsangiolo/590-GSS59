@@ -10,15 +10,25 @@ from keras.layers import Dense, Dropout, SimpleRNN
 from tensorflow.keras.utils import to_categorical
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
+# The Evaluator class loads a model from the filesystem, collects and cleans more test data, and runs evaluations on them
 class Evaluator():
 
+    # Initializes the class. Just specify the mode (gutenberg, wiki, or text_file)
+    # WARNING: This assumes the doc2vec length is 300!!!! Will be updated in future iterations to be more dynamic
     def __init__(self, mode='gutenberg'):
         self.cleaner = importlib.import_module('01-clean').Cleaner(mode=mode)
+        # Misnomer -- really n_classes!
         self.n_books = 0
+        # Misnomer -- really doc2vec vector length!
         self.n_words = 300
         self.model_path = './models'
         self.mode = mode
 
+    # Does the bulk of the evaluation work:
+    # Loads the trained NN model from ./models
+    # Loads the trained Doc2Vec model from ./models
+    # Gathers new test data based on the mode by using the Cleaner class
+    # Runs model predictions on the test data and reports metrics to the screen
     def evaluate_model(self):
         self.model = keras.models.load_model(self.model_path)
 

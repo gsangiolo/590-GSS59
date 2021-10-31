@@ -14,8 +14,16 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, SimpleRNN
 from tensorflow.keras.utils import to_categorical
 
+
+# The Trainer class is responsible for training a Simple Recurrent Neural Network model on text data in the filesystem. Data should first be collected and cleaned, and should have the rough format: {'text_name': ['chunk of text','another chunk of text']}
 class Trainer():
 
+    # Initializes the class. You can specify several hyperparameters here:
+    # len_vector: the length of the Doc2Vec vector that documents should be transformed into
+    # epochs: the number of epochs to train the SimpleRNN on
+    # n_layers: the number of Dense + Dropout layers to add to the NN
+    # activations: optional specification of a LIST of activations for each layer. WARNING: there is no check for validity, so make sure it lines up with n_layers!!!
+    # mode: three possible values: gutenberg, text_file, or wiki. Determines which directory to look for the clean data
     def __init__(self, len_vector=300, epochs=100, n_layers=5, activations=None, mode='gutenberg'):
         # Misnomer -- really the number of classes! Initialize to zero to figure out dynamically how many to use
         self.n_books = 0
@@ -29,6 +37,8 @@ class Trainer():
         else:
             self.activations = activations
 
+    # Reads cleaned texts from the target directory. Uses self.mode to figure out the subdirectory
+    # dir_name: the directory with the cleaned data. If dir_name = ./data_clean/ and self.mode = wiki, it will look in ./data_clean/wiki/
     def read_clean_books_from_dir(self, dir_name='./data_clean/'):
         books = {}
         names = []
@@ -46,6 +56,9 @@ class Trainer():
                 texts.append(' '.join(chunk))
         return (names, texts)
 
+    # Wrapper for train/test/split and Doc2Vec vectorization for the document chunks provided
+    # names: the list of names or identifiers for the texts. AKA y
+    # texts: the list of text chunks. Should be a LIST of STRINGS
     def split_train_val(self, names, texts):
         docs = []
         count = 0
@@ -64,15 +77,18 @@ class Trainer():
         doc_model.save('./models/doc2vec.model')
         
         print("Doc2Vec model trained!")
-
+        
+        # 'test' really refers to validation!
         X_train, X_test, y_train, y_test = train_test_split(doc_model.docvecs, names, test_size=0.3)
 
 
+        #Reshape the X values for the SimpleRNN input
         X_train = np.array([np.array(xi) for xi in X_train])
         X_train = np.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
         X_test = np.array([np.array(xi) for xi in X_test])
         X_test = np.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
 
+        # Encode y values to categorical variables
         label_encoder = LabelEncoder()
         y_train = label_encoder.fit_transform(y_train)
         y_train = to_categorical(y_train)
@@ -88,6 +104,7 @@ class Trainer():
 #sys.exit(1)
 
 
+    # Dynamically build the SimpleRNN model based on hyperparameters specified. Builds Dense layers alternating with Dropout layers climbing up in size, and then no Dropout climbing down. The trained model will be saved to ./models/
     def build_model(self, X_train, y_train, X_val, y_val):
         model = Sequential()
 
@@ -108,6 +125,7 @@ class Trainer():
 # From the last homework, which is from the Lecture Codes!
 #-------------------------------------
 #EVALUATE ON TEST DATA
+# Runs metrics and creates plots for the specified trained model!
 #-------------------------------------
     def evaluate_model(self, model, history, X_train, y_train, X_test, y_test):
 #        print(model.evaluate(X_train, y_train))
