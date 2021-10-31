@@ -1,0 +1,31 @@
+Metrics:
+
+Train Accuracy: 0.9428571462631226
+Val Accuracy:   0.949999988079071
+Train Loss: 0.08667506277561188
+Val Loss:   0.08042941242456436
+Train MSE: 0.003131251782178879
+Val MSE:   0.0027359887026250362
+
+AUC:
+
+Class: 0 AUC: 1.0
+Class: 1 AUC: 1.0
+Class: 2 AUC: 1.0
+Class: 3 AUC: 1.0
+Class: 4 AUC: 1.0
+Class: 5 AUC: 1.0
+Class: 6 AUC: 1.0
+Class: 7 AUC: 1.0
+Class: 8 AUC: 1.0
+Class: 9 AUC: 1.0
+Class: 10 AUC: 1.0
+Class: 11 AUC: 1.0
+Class: 12 AUC: 0.9830508474576272
+Class: 13 AUC: 0.9913793103448275
+Class: 14 AUC: 1.0
+Class: 15 AUC: 1.0
+Class: 16 AUC: 1.0
+Class: 17 AUC: 1.0
+Class: 18 AUC: 1.0
+Class: 19 AUC: 1.0
