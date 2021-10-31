@@ -1,6 +1,6 @@
 import importlib
 
-mode = 'wiki'
+mode = 'gutenberg'
 
 cleaner = importlib.import_module('01-clean').Cleaner(max_texts=50, mode=mode)
 trainer = importlib.import_module('02-train').Trainer(mode=mode)

@@ -37,7 +37,6 @@ class Trainer():
         for filename in os.listdir(dir_name):
             with open(os.path.join(dir_name, filename)) as file:
                 book = json.load(file)
-                print(book)
                 books[filename] = book
 
         for name, chunks in books.items():
@@ -50,12 +49,11 @@ class Trainer():
     def split_train_val(self, names, texts):
         docs = []
         count = 0
-        print(texts[0])
         
         for text in texts:
             docs.append(TaggedDocument(words=text.split(), tags=[str(count)]))
             count += 1
-        print(docs[0])
+        
         # Doc2Vec Model
         doc_model = Doc2Vec(vector_size=self.n_words, window=5, min_count=5, workers=4, epochs=20)
         doc_model.build_vocab(docs)
