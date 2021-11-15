@@ -4,6 +4,8 @@
 #MODIFIED FROM CHOLLETT P120 
 from math import floor
 from keras import layers, regularizers, models
+from tensorflow.keras.losses import msle
+import pandas as pd
 import numpy as np
 import warnings
 import matplotlib.pyplot as plt
@@ -223,7 +225,21 @@ if(I_PLOT):
     plt.show()
     plt.savefig('accuracy_' + dataset + '_' + method + '.png')
 
+# Based on Anomaly Detection Scoring from https://www.analyticsvidhya.com/blog/2021/05/anomaly-detection-using-autoencoders-a-walk-through-in-python/
+def get_predictions(model, x_train, x_test):
+    recoded_images = model.predict(x_train)
+    errors = msle(recoded_images, x_train.reshape(x_train.shape[0], np.prod(x_train.shape[1:])))
+    threshold = np.mean(errors.numpy()) + np.std(errors.numpy())
+    predictions = model.predict(x_test)
+    errors = msle(predictions, x_test.reshape(x_test.shape[0], np.prod(x_test.shape[1:])))
+    anomaly_mask = pd.Series(errors) > threshold
+    predictions = anomaly_mask.map(lambda x: 0.0 if x == True else 1.0)
+    return predictions
 
+
+anomalies = get_predictions(model, train_images, test_images)
+print("Found Anomalies: ", anomalies)
+print("Total: ", sum([v for k, v in anomalies.items()]))
 
 
 # Visualize covnet layers -- skip if not CNN!
